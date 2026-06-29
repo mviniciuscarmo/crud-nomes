@@ -68,7 +68,7 @@ function App() {
 
   // ── CRUD: DELETE ─────────────────────────────────────────────────
   async function excluirNome(id) {
-    if (!confirm('Confirma a exclusão?XY')) return
+    if (!confirm('Confirma a exclusão?XYZ')) return
     setLoading(true)
     const { error } = await supabase
       .from('nomes')
