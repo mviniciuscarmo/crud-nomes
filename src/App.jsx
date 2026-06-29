@@ -2,25 +2,47 @@ import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
 import './index.css'
 
-// Lê as variáveis de ambiente injetadas pelo Vite no momento do build
 const APP_ENV     = import.meta.env.VITE_APP_ENV     || 'local'
 const APP_VERSION = import.meta.env.VITE_APP_VERSION || '0.0.0'
 
-function App() {
-  // useState é como uma variável de formulário no VB — quando muda, a tela re-renderiza
-  const [nomes, setNomes]       = useState([])   // lista de nomes do banco
-  const [novoNome, setNovoNome] = useState('')    // valor do input
-  const [editando, setEditando] = useState(null)  // { id, nome } do item em edição
-  const [loading, setLoading]   = useState(false) // controle de estado de carregamento
-  const [erro, setErro]         = useState('')    // mensagem de erro
+// Temas disponíveis
+const TEMAS = [
+  { valor: 'light',  label: '☀️ Claro'  },
+  { valor: 'dark',   label: '🌙 Escuro' },
+  { valor: 'system', label: '⚙️ Sistema' },
+]
 
-  // useEffect com array vazio [] = executa UMA vez quando o componente "monta"
-  // Equivale ao Form_Load do VB
+function App() {
+  const [nomes, setNomes]       = useState([])
+  const [novoNome, setNovoNome] = useState('')
+  const [editando, setEditando] = useState(null)
+  const [loading, setLoading]   = useState(false)
+  const [erro, setErro]         = useState('')
+
+  // Lê o tema salvo no localStorage (ou usa 'system' como padrão)
+  const [tema, setTema] = useState(
+    () => localStorage.getItem('tema') || 'system'
+  )
+
+  // Aplica o tema ao elemento <html> sempre que mudar
+  useEffect(() => {
+    const root = document.documentElement
+
+    if (tema === 'system') {
+      // Remove qualquer tema fixo e deixa o sistema decidir
+      root.removeAttribute('data-theme')
+    } else {
+      root.setAttribute('data-theme', tema)
+    }
+
+    // Salva a preferência do usuário para persistir entre sessões
+    localStorage.setItem('tema', tema)
+  }, [tema])
+
   useEffect(() => {
     carregarNomes()
   }, [])
 
-  // ── CRUD: READ ──────────────────────────────────────────────────
   async function carregarNomes() {
     setLoading(true)
     const { data, error } = await supabase
@@ -33,7 +55,6 @@ function App() {
     setLoading(false)
   }
 
-  // ── CRUD: CREATE ─────────────────────────────────────────────────
   async function adicionarNome() {
     if (!novoNome.trim()) return
     setLoading(true)
@@ -49,7 +70,6 @@ function App() {
     setLoading(false)
   }
 
-  // ── CRUD: UPDATE ─────────────────────────────────────────────────
   async function salvarEdicao() {
     if (!editando?.nome.trim()) return
     setLoading(true)
@@ -66,9 +86,8 @@ function App() {
     setLoading(false)
   }
 
-  // ── CRUD: DELETE ─────────────────────────────────────────────────
   async function excluirNome(id) {
-    if (!confirm('Confirma a exclusão?XYZ')) return
+    if (!confirm('Confirma a exclusão?')) return
     setLoading(true)
     const { error } = await supabase
       .from('nomes')
@@ -80,13 +99,9 @@ function App() {
     setLoading(false)
   }
 
-  // ── RENDER ───────────────────────────────────────────────────────
-  // No React, a função retorna JSX — uma mistura de HTML com JavaScript
-  // É como o Designer do VB, mas em código
   return (
     <div className="container">
 
-      {/* Cabeçalho com informações de ambiente e versão */}
       <header>
         <h1>Cadastro de Nomes</h1>
         <div className={`badge badge-${APP_ENV}`}>
@@ -95,7 +110,19 @@ function App() {
         <div className="version">v{APP_VERSION}</div>
       </header>
 
-      {/* Mensagem de erro */}
+      {/* Seletor de tema */}
+      <div className="seletor-tema">
+        {TEMAS.map(t => (
+          <button
+            key={t.valor}
+            className={`btn-tema ${tema === t.valor ? 'ativo' : ''}`}
+            onClick={() => setTema(t.valor)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       {erro && (
         <div className="erro">
           ⚠️ {erro}
@@ -103,7 +130,6 @@ function App() {
         </div>
       )}
 
-      {/* Formulário de inclusão */}
       <section className="form-inclusao">
         <input
           type="text"
@@ -118,14 +144,12 @@ function App() {
         </button>
       </section>
 
-      {/* Lista de nomes */}
       {loading && <p className="loading">Carregando...</p>}
 
       <ul className="lista-nomes">
         {nomes.map(item => (
           <li key={item.id}>
             {editando?.id === item.id ? (
-              // Modo de edição inline
               <>
                 <input
                   type="text"
@@ -138,7 +162,6 @@ function App() {
                 <button onClick={() => setEditando(null)}>✕ Cancelar</button>
               </>
             ) : (
-              // Modo de visualização
               <>
                 <span>{item.nome}</span>
                 <div className="acoes">
